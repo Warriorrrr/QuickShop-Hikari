@@ -17,7 +17,7 @@ import java.time.temporal.ChronoUnit;
  */
 public class ChatListener extends AbstractQSListener {
 
-  private static final String LITEBANS_CANCELLED = "[event cancelled by LiteBans]";
+  private static final String LITEBANS_CANCELLED = "[event cancelled]";
 
   public ChatListener(final QuickShop plugin) {
 
