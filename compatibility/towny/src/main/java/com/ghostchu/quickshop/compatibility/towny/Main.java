@@ -37,7 +37,6 @@ import com.palmergames.bukkit.towny.event.town.TownKickEvent;
 import com.palmergames.bukkit.towny.event.town.TownLeaveEvent;
 import com.palmergames.bukkit.towny.event.town.TownRuinedEvent;
 import com.palmergames.bukkit.towny.event.town.TownUnclaimEvent;
-import com.palmergames.bukkit.towny.exceptions.NotRegisteredException;
 import com.palmergames.bukkit.towny.object.Nation;
 import com.palmergames.bukkit.towny.object.Resident;
 import com.palmergames.bukkit.towny.object.Town;
@@ -387,11 +386,12 @@ public final class Main extends CompatibilityModule implements Listener {
   @EventHandler(ignoreCancelled = true)
   public void permissionOverride(final ShopPermissionCheckEvent event) {
 
-    if(event.shop().isEmpty()) {
+    final Shop shop = event.shop().orElse(null);
+    if(shop == null || event.hasPermission() || !event.permissionNode().equals(BuiltInShopPermission.DELETE.getRawNode()) || !event.pluginNamespace().equals(QuickShop.getInstance().getJavaPlugin().getName())) {
       return;
     }
 
-    final Location shopLoc = event.shop().get().bukkitLocation();
+    final Location shopLoc = shop.bukkitLocation();
     if(isWorldIgnored(shopLoc.getWorld())) {
       return;
     }
@@ -399,25 +399,14 @@ public final class Main extends CompatibilityModule implements Listener {
     if(town == null) {
       return;
     }
-    if(town.getMayor().getUUID().equals(event.playerUUID())) {
-      if(getConfig().getBoolean("allow-mayor-permission-override", true)) {
-        if(event.pluginNamespace().equals(QuickShop.getInstance().getJavaPlugin().getName()) && event.permissionNode().equals(BuiltInShopPermission.DELETE.getRawNode())) {
-          event.hasPermission(true);
-          return;
-        }
-      }
+    if(town.hasMayor() && town.getMayor().getUUID().equals(event.playerUUID()) && getConfig().getBoolean("allow-mayor-permission-override", true)) {
+      event.hasPermission(true);
+      return;
     }
-    try {
-      final Nation nation = town.getNation();
-      if(nation.getKing().getUUID().equals(event.playerUUID())) {
-        if(getConfig().getBoolean("allow-king-permission-override", true)) {
-          if(event.pluginNamespace().equals(QuickShop.getInstance().getJavaPlugin().getName()) && event.permissionNode().equals(BuiltInShopPermission.DELETE.getRawNode())) {
-            event.hasPermission(true);
-          }
-        }
-      }
-    } catch(final NotRegisteredException ignored) {
 
+    final Nation nation = town.getNationOrNull();
+    if(nation != null && nation.getKing().getUUID().equals(event.playerUUID()) && getConfig().getBoolean("allow-king-permission-override", true)) {
+      event.hasPermission(true);
     }
   }
 
